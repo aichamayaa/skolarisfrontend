@@ -61,7 +61,7 @@
                 <span class="demo-text">Accès démo</span>
                 <span class="demo-line"></span>
             </div>
-            <p class="demo-hint">Connectez-vous en tant qu'administrateur, enseignant ou élève</p>
+            <p class="demo-hint">Cliquez sur un profil pour explorer la démo</p>
             <div class="demo-buttons">
                 <button class="demo-btn demo-admin" @onclick='() => ConnecterEn("admin@gmail.com")'
                         disabled="@isLoading">
@@ -269,37 +269,41 @@
             isLoading = false;
         }
     }
-
     private async Task ConnecterEn(string email)
     {
         errorMessage = "";
         isLoading = true;
 
+        // Profils démo (les ids suivent l'ordre de création du DataSeeder)
+        var (role, nom, id, route) = email switch
+        {
+            "admin@gmail.com"      => ("ADMIN", "Skolaris Admin", 1, "/dashboard-admin"),
+            "enseignant@gmail.com" => ("ENSEIGNANT", "Enseignant Skolaris", 2, "/dashboard-enseignant"),
+            _                      => ("ELEVE", "Skolaris Eleve", 3, "/dashboard-eleve")
+        };
+
         try
         {
+            // On essaie la vraie connexion pour récupérer les vraies infos
             var response = await Http.PostAsJsonAsync("api/auth/login", new { Email = email, Password = "123456" });
-
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                errorMessage = "Impossible de se connecter avec ce compte démo.";
-                isLoading = false;
-                return;
+                var user = await response.Content.ReadFromJsonAsync<UserResponse>();
+                if (user != null)
+                {
+                    role = user.Role.Trim().ToUpper();
+                    nom = user.Nom;
+                    id = user.Id;
+                }
             }
-
-            var user = await response.Content.ReadFromJsonAsync<UserResponse>();
-            if (user == null) { errorMessage = "Erreur de connexion."; isLoading = false; return; }
-
-            await JS.InvokeVoidAsync("localStorage.setItem", "role", user.Role);
-            await JS.InvokeVoidAsync("localStorage.setItem", "nom", user.Nom);
-            await JS.InvokeVoidAsync("localStorage.setItem", "userId", user.Id.ToString());
-
-            var role = user.Role.Trim().ToUpper();
-            if (role == "ADMIN") Navigation.NavigateTo("/dashboard-admin");
-            else if (role == "ENSEIGNANT") Navigation.NavigateTo("/dashboard-enseignant");
-            else if (role == "ELEVE") Navigation.NavigateTo("/dashboard-eleve");
-            else errorMessage = "Rôle inconnu.";
         }
-        catch { errorMessage = "Erreur réseau."; isLoading = false; }
+        catch { /* si l'API ne répond pas, on garde le profil démo ci-dessus */ }
+
+        await JS.InvokeVoidAsync("localStorage.setItem", "role", role);
+        await JS.InvokeVoidAsync("localStorage.setItem", "nom", nom);
+        await JS.InvokeVoidAsync("localStorage.setItem", "userId", id.ToString());
+
+        Navigation.NavigateTo(route);
     }
 
     public class LoginModel
