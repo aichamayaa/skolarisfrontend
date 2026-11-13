@@ -1,0 +1,199 @@
+﻿@page "/audit-logs"
+@rendermode InteractiveServer
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using System.Net.Http.Json
+
+<div class="sk-page-header">
+    <h2 class="sk-page-title">Journaux d'activité</h2>
+
+    <div class="d-flex gap-2">
+        <button class="sk-btn sk-btn-outline" @onclick="Charger">
+            Rafraîchir
+        </button>
+
+        <button class="sk-btn sk-btn-danger" @onclick="ClearLogs">
+            Vider les journaux
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="sk-alert @(isError ? "sk-alert-danger" : "sk-alert-success")">
+        @message
+    </div>
+}
+
+@if (logs == null)
+{
+    <div class="sk-loading">Chargement...</div>
+}
+else if (!logs.Any())
+{
+    <div class="sk-empty">Aucun journal trouvé.</div>
+}
+else
+{
+    <div class="sk-table-wrapper">
+        <table class="sk-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Utilisateur</th>
+                    <th>Rôle</th>
+                    <th>Action</th>
+                    <th>Détails</th>
+                    <th>IP</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var log in logs)
+                {
+                    <tr>
+                        <td>@log.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+
+                        <td>
+                            <strong>@log.UserName</strong>
+                        </td>
+
+                        <td>@log.Role</td>
+
+                        <td>@log.Action</td>
+
+                        <td>@log.Details</td>
+
+                        <td>@(log.IpAddress ?? "—")</td>
+
+                        <td>
+                            <button class="sk-btn sk-btn-danger"
+                                    @onclick="() => DeleteLog(log.Id)">
+                                Supprimer
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<div class="mt-4">
+    <button class="sk-btn sk-btn-outline"
+            @onclick='() => Navigation.NavigateTo("/dashboard-admin")'>
+        ← Retour au tableau de bord
+    </button>
+</div>
+
+@code {
+    List<AuditLogDto>? logs;
+
+    string message = "";
+
+    bool isError = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Charger();
+    }
+
+    async Task Charger()
+    {
+        try
+        {
+            logs = await Http.GetFromJsonAsync<List<AuditLogDto>>(
+                "api/audit-logs"
+            ) ?? new();
+
+            message = "";
+            isError = false;
+        }
+        catch (Exception ex)
+        {
+            logs = new();
+
+            isError = true;
+            message = "Erreur lors du chargement des journaux.";
+
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    async Task DeleteLog(int id)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"api/audit-logs/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Journal supprimé.";
+                isError = false;
+
+                await Charger();
+            }
+            else
+            {
+                message = "Erreur lors de la suppression.";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = "Erreur lors de la suppression.";
+            isError = true;
+
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    async Task ClearLogs()
+    {
+        try
+        {
+            var response = await Http.DeleteAsync("api/audit-logs/clear");
+
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Tous les journaux ont été supprimés.";
+                isError = false;
+
+                await Charger();
+            }
+            else
+            {
+                message = "Erreur lors de la suppression des journaux.";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = "Erreur lors de la suppression des journaux.";
+            isError = true;
+
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    public class AuditLogDto
+    {
+        public int Id { get; set; }
+
+        public string UserId { get; set; } = "";
+
+        public string UserName { get; set; } = "";
+
+        public string Role { get; set; } = "";
+
+        public string Action { get; set; } = "";
+
+        public string Details { get; set; } = "";
+
+        public string? IpAddress { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+    }
+}

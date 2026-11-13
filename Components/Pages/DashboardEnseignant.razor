@@ -1,0 +1,74 @@
+@page "/dashboard-enseignant"
+@rendermode InteractiveServer
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+@if (nomEnseignant != null)
+{
+    <div class="sk-welcome">
+        <div class="sk-welcome-avatar">@GetInitiales(nomEnseignant)</div>
+        <div>
+            <h2 class="sk-welcome-title">Bonjour, @nomEnseignant !</h2>
+            <p class="sk-welcome-sub">Tableau de bord enseignant</p>
+        </div>
+    </div>
+}
+
+<div class="sk-section-title">Mes accès rapides</div>
+<div class="sk-action-grid">
+    <div class="sk-action-card" @onclick="GoAbsences">
+        <div class="sk-action-icon">📋</div>
+        <div class="sk-action-title">Absences</div>
+        <div class="sk-action-desc">Saisir et gérer les absences de mes cours</div>
+    </div>
+    <div class="sk-action-card" @onclick="GoHoraire">
+    <div class="sk-action-icon">📅</div>
+    <div class="sk-action-title">Mon horaire</div>
+    <div class="sk-action-desc coming-soon">Consulter mon emploi du temps</div>
+    </div>
+    <div class="sk-action-card" @onclick="GoNotes">
+        <div class="sk-action-icon">📝</div>
+        <div class="sk-action-title">Notes</div>
+        <div class="sk-action-desc">Saisir et modifier les notes de mes élèves</div>
+    </div>
+    <div class="sk-action-card" @onclick="GoStatistiques">
+        <div class="sk-action-icon">📊</div>
+        <div class="sk-action-title">Statistiques de classe</div>
+        <div class="sk-action-desc">Moyenne, médiane et distribution par cours</div>
+    </div>
+    <div class="sk-action-card" @onclick="GoMessagerie">
+        <div class="sk-action-icon">💬</div>
+        <div class="sk-action-title">Messagerie</div>
+        <div class="sk-action-desc">Conversations avec élèves et collègues</div>
+    </div>
+</div>
+
+@code {
+    private string? nomEnseignant;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            nomEnseignant = await JS.InvokeAsync<string>("localStorage.getItem", "nom") ?? "Enseignant";
+            StateHasChanged();
+        }
+    }
+
+    private string GetInitiales(string nom)
+    {
+        if (string.IsNullOrWhiteSpace(nom)) return "E";
+        var parts = nom.Trim().Split(' ');
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : nom[0].ToString().ToUpper();
+    }
+
+    private void GoAbsences() => Navigation.NavigateTo("/enseignant/absences");
+    private void GoNotes() => Navigation.NavigateTo("/enseignant/notes");
+    private void GoStatistiques() => Navigation.NavigateTo("/enseignant/statistiques");
+    private void GoMessagerie() => Navigation.NavigateTo("/messagerie");
+    private void GoHoraire() => Navigation.NavigateTo("/enseignant/emploi-du-temps");
+}

@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link href="css/skolaris.css" rel="stylesheet" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["Skolaris.Client.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="/js/inactivity.js"></script>
+
+    <script>
+        function scrollToBottom(elementId) {
+        var el = document.getElementById(elementId);
+        if (el) el.scrollTop = el.scrollHeight;
+        }
+        function triggerFileInput(elementId) {
+        var el = document.getElementById(elementId);
+        if (el) el.click();
+        }
+    </script>
+    <script src="_framework/blazor.web.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

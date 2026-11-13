@@ -1,0 +1,10 @@
+# Front Blazor Server (a besoin d'un vrai serveur + WebSockets => Render, pas Vercel)
+services:
+  - type: web
+    name: skolaris-front
+    runtime: docker
+    plan: free
+    envVars:
+      # URL publique de l'API (ex: https://skolaris-api.onrender.com)
+      - key: ApiUrl
+        sync: false

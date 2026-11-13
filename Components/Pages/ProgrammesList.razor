@@ -1,0 +1,172 @@
+@page "/admin/programmes"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@using System.Net.Http.Json
+
+@if (!loaded)
+{
+    <div class="sk-loading">Chargement des programmes...</div>
+}
+else
+{
+    <div class="sk-dossier-header">
+        <div class="sk-dossier-avatar">📚</div>
+        <div>
+            <h2 class="sk-dossier-name">Gestion des programmes</h2>
+            <p class="sk-dossier-sub">Administration — Programmes d'études</p>
+        </div>
+    </div>
+
+    <div class="sk-stats-row">
+        <div class="sk-stat-card">
+            <div class="sk-stat-icon">📚</div>
+            <div class="sk-stat-value">@programmes.Count</div>
+            <div class="sk-stat-label">Total programmes</div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert @(message.StartsWith("❌") ? "alert-danger" : "alert-success")">@message</div>
+    }
+
+    <div class="sk-section-title" style="margin-top:32px;">Liste des programmes</div>
+
+    <div class="mb-3">
+        <button class="sk-btn sk-btn-primary" @onclick='() => Navigation.NavigateTo("/admin/programmes/create")'>
+            ➕ Créer un programme
+        </button>
+    </div>
+
+    @if (!programmes.Any())
+    {
+        <div class="sk-empty">Aucun programme trouvé.</div>
+    }
+    else
+    {
+        <div class="sk-table-wrapper">
+            <table class="sk-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in programmes)
+                    {
+                        <tr>
+                            @if (editId == p.IdProgramme)
+                            {
+                                <td>
+                                    <input class="sk-input" @bind="editProgramme.Nom" />
+                                </td>
+                                <td>
+                                    <input class="sk-input" @bind="editProgramme.Description" />
+                                </td>
+                                <td class="sk-actions">
+                                    <button class="sk-btn sk-btn-sm sk-btn-primary" @onclick="SaveEdit">Enregistrer</button>
+                                    <button class="sk-btn sk-btn-sm sk-btn-outline" @onclick="CancelEdit">Annuler</button>
+                                </td>
+                            }
+                            else
+                            {
+                                <td><strong>@p.Nom</strong></td>
+                                <td>@(string.IsNullOrEmpty(p.Description) ? "—" : p.Description)</td>
+                                <td class="sk-actions">
+                                    <button class="sk-btn sk-btn-sm sk-btn-outline" @onclick="() => OpenEdit(p)">Modifier</button>
+                                    <button class="sk-btn sk-btn-sm sk-btn-danger" @onclick="() => DeleteProgramme(p.IdProgramme)">Supprimer</button>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+<div class="mt-4">
+    <button class="sk-btn sk-btn-outline" @onclick='() => Navigation.NavigateTo("/dashboard-admin")'>← Retour au tableau de bord</button>
+</div>
+
+@code {
+    private List<Programme> programmes = new();
+    private string message = "";
+    private bool loaded = false;
+
+    private int editId = 0;
+    private Programme editProgramme = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ChargerProgrammes();
+        loaded = true;
+    }
+
+    private async Task ChargerProgrammes()
+    {
+        programmes = await Http.GetFromJsonAsync<List<Programme>>("api/Programme") ?? new();
+    }
+
+    private void OpenEdit(Programme p)
+    {
+        editId = p.IdProgramme;
+        editProgramme = new Programme
+        {
+            IdProgramme = p.IdProgramme,
+            Nom = p.Nom,
+            Description = p.Description
+        };
+    }
+
+    private void CancelEdit()
+    {
+        editId = 0;
+        editProgramme = new Programme();
+    }
+
+    private async Task SaveEdit()
+    {
+        var res = await Http.PutAsJsonAsync($"api/Programme/{editId}", editProgramme);
+
+        if (res.IsSuccessStatusCode)
+        {
+            message = "✅ Programme modifié avec succès.";
+            editId = 0;
+            editProgramme = new Programme();
+            await ChargerProgrammes();
+        }
+        else
+        {
+            message = $"❌ Erreur : {await res.Content.ReadAsStringAsync()}";
+        }
+    }
+
+    private async Task DeleteProgramme(int id)
+    {
+        bool confirmation = await JS.InvokeAsync<bool>("confirm", "Voulez-vous vraiment supprimer ce programme ?");
+        if (!confirmation) return;
+
+        var res = await Http.DeleteAsync($"api/Programme/{id}");
+        if (res.IsSuccessStatusCode)
+        {
+            message = "✅ Programme supprimé avec succès.";
+            programmes = programmes.Where(p => p.IdProgramme != id).ToList();
+        }
+        else
+        {
+            message = $"❌ Erreur : {await res.Content.ReadAsStringAsync()}";
+        }
+    }
+
+    public class Programme
+    {
+        public int IdProgramme { get; set; }
+        public string Nom { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+}
