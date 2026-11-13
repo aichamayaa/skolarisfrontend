@@ -2,23 +2,11 @@
 @rendermode InteractiveServer
 
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
 
 @code {
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
-        {
-            var role = await JS.InvokeAsync<string>("localStorage.getItem", "role");
-
-            if (role == "ADMIN")
-                Navigation.NavigateTo("/dashboard-admin");
-            else if (role == "ENSEIGNANT")
-                Navigation.NavigateTo("/dashboard-enseignant");
-            else if (role == "ELEVE")
-                Navigation.NavigateTo("/dashboard-eleve");
-            else
-                Navigation.NavigateTo("/login");
-        }
+            Navigation.NavigateTo("/login");
     }
 }
